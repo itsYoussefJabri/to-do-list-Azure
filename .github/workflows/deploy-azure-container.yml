@@ -32,13 +32,15 @@ jobs:
       - name: Select Subscription
         run: az account set --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID || '7b8227d0-1013-41aa-8201-af2c503b375d' }}"
 
-      - name: Build and Push Container Image
+      - name: Build Docker image
+        run: docker build -t $ACR_NAME.azurecr.io/$IMAGE_NAME:latest .
+
+      - name: Login to ACR
+        run: az acr login --name $ACR_NAME
+
+      - name: Push Docker image to ACR
         run: |
-          az acr build \
-            --registry "$ACR_NAME" \
-            --image "${IMAGE_NAME}:latest" \
-            --image "${IMAGE_NAME}:${{ github.sha }}" \
-            .
+          docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:latest
 
       - name: Configure Web App Container Image
         run: |
