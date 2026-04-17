@@ -10,7 +10,7 @@ const projectRoot = path.resolve(__dirname, "..");
 const distPath = path.join(projectRoot, "dist");
 const dataPath =
   process.env.TODOS_FILE || path.join(projectRoot, "data", "todos.json");
-const port = Number(process.env.PORT || 8080);
+const port = Number(process.env.PORT || 80);
 
 const app = express();
 app.use(express.json());

@@ -14,5 +14,5 @@ RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY server ./server
 COPY data ./data
-EXPOSE 8080
+EXPOSE 80
 CMD ["npm", "run", "start"]
