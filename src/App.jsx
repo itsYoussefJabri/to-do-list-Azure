@@ -144,7 +144,7 @@ function App() {
   return (
     <main className="app">
       <header className="hero">
-        <p className="tag">React + JSON file storage</p>
+        <p className="tag">React + JSON file storage.</p>
         <h1>Visit Difference + Todo List</h1>
         <p className="subtext">{visitMessage}</p>
       </header>
