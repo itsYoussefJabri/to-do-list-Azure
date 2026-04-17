@@ -42,16 +42,27 @@ jobs:
         run: |
           docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:latest
 
+      - name: Get ACR Credentials
+        id: acr_creds
+        run: |
+          USERNAME=$(az acr credential show --name $ACR_NAME --query username -o tsv)
+          PASSWORD=$(az acr credential show --name $ACR_NAME --query passwords[0].value -o tsv)
+          echo "ACR_USERNAME=$USERNAME" >> $GITHUB_ENV
+          echo "ACR_PASSWORD=$PASSWORD" >> $GITHUB_ENV
+
       - name: Configure Web App Container Image
         run: |
           LOGIN_SERVER=$(az acr show --name "$ACR_NAME" --query loginServer -o tsv)
           az webapp config container set \
             --name "$WEBAPP_NAME" \
             --resource-group "$RESOURCE_GROUP" \
-            --container-image-name "$LOGIN_SERVER/${IMAGE_NAME}:latest"
-
-      - name: Restart Web App
-        run: az webapp restart --name "$WEBAPP_NAME" --resource-group "$RESOURCE_GROUP"
+            --container-image-name "$LOGIN_SERVER/${IMAGE_NAME}:latest" \
+            --container-registry-url https://$ACR_NAME.azurecr.io \
+            --container-registry-user $ACR_USERNAME \
+            --container-registry-password $ACR_PASSWORD
+          az webapp restart \
+            --name "$WEBAPP_NAME" \
+            --resource-group "$RESOURCE_GROUP"
 
       - name: Print App URL
         run: |
