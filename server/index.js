@@ -107,6 +107,6 @@ app.use((req, res, next) => {
   res.sendFile(path.join(distPath, "index.html"));
 });
 
-app.listen(port, () => {
-  console.log(`server is running on http://localhost:${port}`);
+app.listen(port, "0.0.0.0", () => {
+  console.log(`server is running on http://0.0.0.0:${port}`);
 });
