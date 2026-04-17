@@ -1,0 +1,67 @@
+name: Deploy React Container To Azure
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+  LOCATION: ${{ vars.LOCATION }}
+  WEBAPP_NAME: ${{ vars.WEBAPP_NAME }}
+  ACR_NAME: ${{ vars.ACR_NAME }}
+  IMAGE_NAME: ${{ vars.IMAGE_NAME }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Select Subscription
+        run: az account set --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID || '7b8227d0-1013-41aa-8201-af2c503b375d' }}"
+
+      - name: Create Resource Group
+        run: az group create --name "$RESOURCE_GROUP" --location "$LOCATION"
+
+      - name: Deploy Infrastructure (Bicep)
+        run: |
+          az deployment group create \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/main.bicep \
+            --parameters webAppName="$WEBAPP_NAME" acrName="$ACR_NAME" location="$LOCATION" imageName="${IMAGE_NAME}:latest"
+
+      - name: Build and Push Container Image
+        run: |
+          az acr build \
+            --registry "$ACR_NAME" \
+            --image "${IMAGE_NAME}:latest" \
+            --image "${IMAGE_NAME}:${{ github.sha }}" \
+            .
+
+      - name: Configure Web App Container Image
+        run: |
+          LOGIN_SERVER=$(az acr show --name "$ACR_NAME" --query loginServer -o tsv)
+          az webapp config container set \
+            --name "$WEBAPP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --container-image-name "$LOGIN_SERVER/${IMAGE_NAME}:latest"
+
+      - name: Restart Web App
+        run: az webapp restart --name "$WEBAPP_NAME" --resource-group "$RESOURCE_GROUP"
+
+      - name: Print App URL
+        run: |
+          URL=$(az webapp show --name "$WEBAPP_NAME" --resource-group "$RESOURCE_GROUP" --query defaultHostName -o tsv)
+          echo "App URL: https://$URL"
